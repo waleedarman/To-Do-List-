@@ -1,26 +1,27 @@
-'use strict';
-
 const STORAGE_KEY = 'todo.tasks.v1';
 
-const loadTasks = () => {
+function loadTasks() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     return raw ? JSON.parse(raw) : [];
-  } catch { return []; }
-};
+  } catch {
+    return [];
+  }
+}
+function saveTasks(tasks) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
+}
 
-const saveTasks = (tasks) => localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
+let tasks = loadTasks();
+const form  = document.getElementById('taskForm');
+const input = document.getElementById('taskInput');
+const list  = document.getElementById('taskList');
 
-let state = loadTasks();
-
-const $form  = document.getElementById('taskForm');
-const $input = document.getElementById('taskInput');
-const $list  = document.getElementById('taskList');
-
-const renderItem = (task, index) => {
+function createItem(task, index) {
   const li = document.createElement('li');
   li.className = 'list-group-item d-flex align-items-center justify-content-between px-3 py-3 mb-3';
   li.dataset.index = index;
+
   if (task.completed) li.classList.add('completed');
 
   const left = document.createElement('div');
@@ -35,57 +36,63 @@ const renderItem = (task, index) => {
   text.className = 'task-text';
   text.textContent = task.text;
 
-  const remove = document.createElement('button');
-  remove.className = 'btn btn-sm btn-link btn-remove p-0';
-  remove.type = 'button';
-  remove.innerHTML = '<i class="bi bi-x-lg"></i>';
+  const btn = document.createElement('button');
+  btn.type = 'button';
+  btn.className = 'btn btn-sm btn-link btn-remove p-0';
+  btn.innerHTML = '<i class="bi bi-x-lg"></i>';
 
-  left.append(checkbox, text);
-  li.append(left, remove);
+  left.appendChild(checkbox);
+  left.appendChild(text);
+  li.appendChild(left);
+  li.appendChild(btn);
+
   return li;
-};
+}
 
-const render = () => {
-  const frag = document.createDocumentFragment();
-  $list.innerHTML = '';
-  state.forEach((t, i) => frag.appendChild(renderItem(t, i)));
-  $list.appendChild(frag);
-};
+function render() {
+  list.innerHTML = '';
+  for (let i = 0; i < tasks.length; i++) {
+    list.appendChild(createItem(tasks[i], i));
+  }
+  saveTasks(tasks);
+}
 
-const commit = () => { saveTasks(state); render(); };
-
-const addTask = (text) => {
+function addTask(text) {
   const t = text.trim();
   if (!t) return;
-  state = [...state, { text: t, completed: false }];
-  commit();
-};
+  tasks.push({ text: t, completed: false });
+  render();
+}
 
-const toggleTaskByIndex = (idx) => {
-  if (idx < 0 || idx >= state.length) return;
-  state[idx].completed = !state[idx].completed;
-  commit();
-};
+function toggleTask(index) {
+  if (index < 0 || index >= tasks.length) return;
+  tasks[index].completed = !tasks[index].completed;
+  render();
+}
 
-const removeTaskByIndex = (idx) => {
-  if (idx < 0 || idx >= state.length) return;
-  state.splice(idx, 1);
-  commit();
-};
+function removeTask(index) {
+  if (index < 0 || index >= tasks.length) return;
+  tasks.splice(index, 1);
+  render();
+}
 
-$form.addEventListener('submit', (e) => {
+form.addEventListener('submit', function (e) {
   e.preventDefault();
-  addTask($input.value);
-  $input.value = '';
-  $input.focus();
+  addTask(input.value);
+  input.value = '';
+  input.focus();
 });
 
-$list.addEventListener('click', (e) => {
+list.addEventListener('click', function (e) {
   const li = e.target.closest('li.list-group-item');
   if (!li) return;
-  const idx = Number(li.dataset.index);
-  if (e.target.closest('.form-check-input')) toggleTaskByIndex(idx);
-  else if (e.target.closest('.btn-remove')) removeTaskByIndex(idx);
+  const index = Number(li.dataset.index);
+
+  if (e.target.closest('.form-check-input')) {
+    toggleTask(index);
+  } else if (e.target.closest('.btn-remove')) {
+    removeTask(index);
+  }
 });
 
 render();
