@@ -1,98 +1,58 @@
-const STORAGE_KEY = 'todo.tasks.v1';
+const taskInput = document.getElementById("taskInput");
+const taskForm = document.getElementById("taskForm");
+const taskList = document.getElementById("taskList");
 
-function loadTasks() {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    return raw ? JSON.parse(raw) : [];
-  } catch {
-    return [];
-  }
-}
-function saveTasks(tasks) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
+let tasks = JSON.parse(localStorage.getItem("tasks")) || [];
+
+function saveAndRender() {
+  localStorage.setItem("tasks", JSON.stringify(tasks));
+  renderTasks();
 }
 
-let tasks = loadTasks();
-const form  = document.getElementById('taskForm');
-const input = document.getElementById('taskInput');
-const list  = document.getElementById('taskList');
+function renderTasks() {
+  taskList.innerHTML = "";
+  tasks.forEach((task, index) => {
+    const li = document.createElement("li");
+    li.className =
+      "list-group-item d-flex justify-content-between align-items-center shadow-sm mb-2";
+    if (task.completed) li.classList.add("completed");
 
-function createItem(task, index) {
-  const li = document.createElement('li');
-  li.className = 'list-group-item d-flex align-items-center justify-content-between px-3 py-3 mb-3';
-  li.dataset.index = index;
+    li.innerHTML = `
+      <div class="d-flex align-items-center gap-2">
+        <input type="checkbox" class="form-check-input complete-checkbox" ${task.completed ? "checked" : ""}>
+        <span class="task-text">${task.text}</span>
+      </div>
+      <button class="btn btn-sm btn-link delete-btn text-danger" title="Delete">
+        <i class="bi bi-trash"></i>
+      </button>
+    `;
 
-  if (task.completed) li.classList.add('completed');
+    li.querySelector(".complete-checkbox").addEventListener("change", () => {
+      tasks[index].completed = !tasks[index].completed;
+      saveAndRender();
+    });
 
-  const left = document.createElement('div');
-  left.className = 'd-flex align-items-center gap-3';
+    li.querySelector(".delete-btn").addEventListener("click", () => {
+      tasks.splice(index, 1);
+      saveAndRender();
+    });
 
-  const checkbox = document.createElement('input');
-  checkbox.type = 'checkbox';
-  checkbox.className = 'form-check-input';
-  checkbox.checked = !!task.completed;
-
-  const text = document.createElement('span');
-  text.className = 'task-text';
-  text.textContent = task.text;
-
-  const btn = document.createElement('button');
-  btn.type = 'button';
-  btn.className = 'btn btn-sm btn-link btn-remove p-0';
-  btn.innerHTML = '<i class="bi bi-x-lg"></i>';
-
-  left.appendChild(checkbox);
-  left.appendChild(text);
-  li.appendChild(left);
-  li.appendChild(btn);
-
-  return li;
-}
-
-function render() {
-  list.innerHTML = '';
-  for (let i = 0; i < tasks.length; i++) {
-    list.appendChild(createItem(tasks[i], i));
-  }
-  saveTasks(tasks);
+    taskList.appendChild(li);
+  });
 }
 
 function addTask(text) {
   const t = text.trim();
   if (!t) return;
   tasks.push({ text: t, completed: false });
-  render();
+  saveAndRender();
 }
 
-function toggleTask(index) {
-  if (index < 0 || index >= tasks.length) return;
-  tasks[index].completed = !tasks[index].completed;
-  render();
-}
-
-function removeTask(index) {
-  if (index < 0 || index >= tasks.length) return;
-  tasks.splice(index, 1);
-  render();
-}
-
-form.addEventListener('submit', function (e) {
+taskForm.addEventListener("submit", (e) => {
   e.preventDefault();
-  addTask(input.value);
-  input.value = '';
-  input.focus();
+  addTask(taskInput.value);
+  taskInput.value = "";
+  taskInput.focus();
 });
 
-list.addEventListener('click', function (e) {
-  const li = e.target.closest('li.list-group-item');
-  if (!li) return;
-  const index = Number(li.dataset.index);
-
-  if (e.target.closest('.form-check-input')) {
-    toggleTask(index);
-  } else if (e.target.closest('.btn-remove')) {
-    removeTask(index);
-  }
-});
-
-render();
+renderTasks();
